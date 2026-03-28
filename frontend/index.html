@@ -115,6 +115,19 @@
           <div class="chip" onclick="window.qf('1050 Grand Concourse','6C','Bronx','Ana','Flores')">1050 Grand Concourse</div>
         </div>
       </div>
+      <div class="s1-form" style="margin-top:0;padding-top:0">
+        <div class="fw">
+          <label class="fl">Language preference</label>
+          <select id="flang" class="fi" style="background:#111;color:#fff;border:1px solid #333">
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="bn">🇧🇩 বাংলা</option>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="ar">🇸🇦 العربية</option>
+          </select>
+        </div>
+      </div>
       <div class="cta">
         <button class="btn btn-p" onclick="window.go(2)">Scan my apartment →</button>
         <button class="btn btn-g">Add address later</button>
@@ -124,6 +137,9 @@
     <!-- ═══ SCREEN 2 · CAMERA ═══ -->
     <div class="scr" id="s2">
       <div class="vf" id="vf">
+         <video id="cameraVideo" autoplay playsinline muted
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;border-radius:inherit;">
+        </video>
         <div class="vf-dots"></div>
         <div class="crt"></div>
         <div class="co tl"></div><div class="co tr"></div>
@@ -167,7 +183,7 @@
             <div class="vio-badge">⚠ Class B — Hazardous</div>
           </div>
           <div class="vio-title">Mold Growth — Bathroom</div>
-          <div class="vio-desc">Landlord is 47 days past the legal 30-day repair deadline. 3 prior complaints filed at this address.</div>
+          <div class="vio-desc" id="real-vio-desc">Landlord is 47 days...</div>
         </div>
         <!-- Skeletons -->
         <div id="skels">
@@ -187,7 +203,7 @@
           <div class="stitle">Auto-filled by TenantLens</div>
           <div class="ff">
             <div class="fflbl">Complaint type <span class="atag">AUTO</span></div>
-            <div class="ffv">PAINT / PLASTER — Mold</div>
+            <div class="ffv" id="real-complaint-type">PAINT / PLASTER — Mold</div>
           </div>
           <div class="ff">
             <div class="fflbl">Location type <span class="atag">AUTO</span></div>
@@ -199,7 +215,7 @@
           </div>
           <div class="ff">
             <div class="fflbl">Complaint description <span class="atag">AUTO</span></div>
-            <div class="ffta">Tenant reports visible mold growth on bathroom ceiling and wall junction, present approximately 6 weeks. Building has 2 open HPD mold violations (IDs: 14823901, 14756234), both past the 30-day Class B repair deadline. Three prior 311 mold complaints at this address in 24 months.</div>
+            <div class="ffta" id="real-description">Tenant reports visible mold growth on bathroom ceiling and wall junction, present approximately 6 weeks. Buil...
           </div>
           <div class="stitle">Fill in yourself</div>
           <div class="ff">
@@ -222,11 +238,11 @@
           <div class="rev">
             <div class="rev-in">
               <div class="revh">Complaint summary</div>
-              <div class="rr"><span class="rk">Violation</span><span class="rv">Mold — Class B Hazardous</span></div>
-              <div class="rr"><span class="rk">Deadline</span><span class="rv">30 days (landlord in default)</span></div>
-              <div class="rr"><span class="rk">HPD violations cited</span><span class="rv">2 open, past deadline</span></div>
-              <div class="rr"><span class="rk">Prior complaints</span><span class="rv">3 in last 24 months</span></div>
-              <div class="rr"><span class="rk">Anti-retaliation</span><span class="rv">Protected · NYC § 26-516</span></div>
+               <div class="rr"><span class="rk">Violation</span><span class="rv" id="real-violation-type">Mold — Class B Hazardous</span></div>
+               <div class="rr"><span class="rk">Deadline</span><span class="rv" id="real-deadline">30 days (landlord in default)</span></div>
+               <div class="rr"><span class="rk">HPD violations cited</span><span class="rv" id="real-hpd-violations">2 open, past deadline</span></div>
+               <div class="rr"><span class="rk">Prior complaints</span><span class="rv" id="real-prior-complaints">3 in last 24 months</span></div>
+               <div class="rr"><span class="rk">Anti-retaliation</span><span class="rv" id="real-anti-retaliation">Protected · NYC § 26-516</span></div>
             </div>
           </div>
           <div class="wait" id="wb">

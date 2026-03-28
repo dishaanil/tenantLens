@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>TenantLens</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <script type="module" src="/src/ts/main.ts"></script>
+</head>
+<body>
+<div class="mesh"></div>
+<div class="shell">
+
+  <!-- BACKDROP -->
+  <div class="sbk" id="sbk" onclick="window.closeSB()"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sb" id="sb">
+    <div class="sb-top">
+      <div class="sb-logo">TenantLens</div>
+      <div class="sb-sub">NYC Housing Rights · HPD Open Data</div>
+    </div>
+    <div class="sb-nav">
+      <div class="sni cur" id="sni1" onclick="window.go(1)">
+        <div class="bub" id="bub1">1</div>
+        <div class="sni-t"><div class="sni-lbl">Your Address</div><div class="sni-sub">Where do you live?</div></div>
+        <div class="sni-chevron">›</div>
+      </div>
+      <div class="sni" id="sni2" onclick="window.go(2)">
+        <div class="bub" id="bub2">2</div>
+        <div class="sni-t"><div class="sni-lbl">Scan Condition</div><div class="sni-sub">Point camera at problem</div></div>
+        <div class="sni-chevron">›</div>
+      </div>
+      <div class="sni" id="sni3" onclick="window.go(3)">
+        <div class="bub" id="bub3">3</div>
+        <div class="sni-t"><div class="sni-lbl">File NYC 311</div><div class="sni-sub">Auto-filled complaint</div></div>
+        <div class="sni-chevron">›</div>
+      </div>
+    </div>
+    <div class="sb-foot">
+      <div class="disc">General information only — not legal advice.<br>Need help? <a href="#">Legal Aid Society</a> · 212-577-3300</div>
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="ham" onclick="window.toggleSB()">
+      <div class="hline"></div>
+      <div class="hline s"></div>
+      <div class="hline"></div>
+    </div>
+    <div class="wm">TenantLens</div>
+    <div class="pips">
+      <div class="pip on" id="pp1"></div>
+      <div class="pip" id="pp2"></div>
+      <div class="pip" id="pp3"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN WRAPPER -->
+  <div class="scr-wrap">
+
+    <!-- ═══ SCREEN 1 · ADDRESS ═══ -->
+    <div class="scr on" id="s1">
+      <div class="s1-hero">
+        <div class="sky-canvas-wrap">
+          <canvas id="skyCanvas"></canvas>
+          <div class="sky-label">New York City</div>
+          <div class="sky-live"><div class="sky-live-dot"></div>HPD LIVE</div>
+          <div class="sky-slogan">
+            <div class="sky-slogan-text">Your landlord knows the law.<br><em>Now so do you.</em></div>
+          </div>
+        </div>
+      </div>
+      <div class="div"></div>
+      <div class="s1-form">
+        <div class="form-section-header">
+          <div class="fsh-left">
+            <div class="fsh-icon">📋</div>
+            <div class="fsh-text">
+              <div class="fsh-title">Your details</div>
+              <div class="fsh-sub">Enter your information to file a complaint</div>
+            </div>
+          </div>
+          <div class="fsh-step">1 of 1</div>
+        </div>
+        <div class="r2">
+          <div class="fw">
+            <label class="fl">First name</label>
+            <input class="fi" id="ffn" type="text" placeholder="Maria" autocomplete="given-name">
+          </div>
+          <div class="fw">
+            <label class="fl">Last name</label>
+            <input class="fi" id="fln" type="text" placeholder="Rodriguez" autocomplete="family-name">
+          </div>
+        </div>
+        <div class="fw">
+          <label class="fl">Street address</label>
+          <input class="fi" id="fa" type="text" placeholder="e.g. 243 94th Street" autocomplete="off">
+        </div>
+        <div class="r2">
+          <div class="fw">
+            <label class="fl">Apt / Unit</label>
+            <input class="fi" id="fap" type="text" placeholder="4B">
+          </div>
+          <div class="fw">
+            <label class="fl">Borough</label>
+            <input class="fi" id="fb" type="text" placeholder="Brooklyn">
+          </div>
+        </div>
+        <div class="rl">Recent</div>
+        <div class="chips">
+          <div class="chip" onclick="window.qf('243 94th Street','4B','Brooklyn','Maria','Rodriguez')">243 94th St · BK</div>
+          <div class="chip" onclick="window.qf('180 Maujer Street','2A','Brooklyn','James','Chen')">180 Maujer · BK</div>
+          <div class="chip" onclick="window.qf('1050 Grand Concourse','6C','Bronx','Ana','Flores')">1050 Grand Concourse</div>
+        </div>
+      </div>
+      <div class="cta">
+        <button class="btn btn-p" onclick="window.go(2)">Scan my apartment →</button>
+        <button class="btn btn-g">Add address later</button>
+      </div>
+    </div>
+
+    <!-- ═══ SCREEN 2 · CAMERA ═══ -->
+    <div class="scr" id="s2">
+      <div class="vf" id="vf">
+        <div class="vf-dots"></div>
+        <div class="crt"></div>
+        <div class="co tl"></div><div class="co tr"></div>
+        <div class="co bl"></div><div class="co br"></div>
+        <div class="sl" id="sl"></div>
+        <div class="reticle" id="reticle"></div>
+        <div class="apill">📍 <span id="apt">Enter address in step 1</span></div>
+        <div class="vfhint" id="vfh">
+          <div class="camico">📷</div>
+          <span>Point at the problem area</span>
+          <span style="font-size:11px;opacity:.6;margin-top:-4px">Tap shutter to scan</span>
+        </div>
+        <!-- Analysis overlay -->
+        <div class="ap" id="ap">
+          <div class="ahead"><div class="ldot"></div>Analyzing housing condition</div>
+          <div id="tl"></div>
+          <div class="progbar"><div class="progfill" id="pf"></div></div>
+        </div>
+      </div>
+      <div class="sbar">
+        <div class="cbtn">⚡</div>
+        <div class="shut" id="shbtn" onclick="window.scan()">
+          <div class="shut-inner"></div>
+        </div>
+        <div class="cbtn">🔄</div>
+      </div>
+    </div>
+
+    <!-- ═══ SCREEN 3 · 311 ═══ -->
+    <div class="scr" id="s3">
+      <div class="s3-head">
+        <div class="portal-tag">🏛 NYC 311 Housing Complaint Portal</div>
+        <div class="s3h">Auto-filled complaint</div>
+        <div class="s3s">Everything pre-filled from your scan + live HPD data. Review and submit.</div>
+      </div>
+      <div class="s3b">
+        <div class="lbar" id="lbar"><div class="spin"></div>Fetching live HPD building data...</div>
+        <!-- Violation summary -->
+        <div class="vio">
+          <div class="vio-row">
+            <div class="vio-badge">⚠ Class B — Hazardous</div>
+          </div>
+          <div class="vio-title">Mold Growth — Bathroom</div>
+          <div class="vio-desc">Landlord is 47 days past the legal 30-day repair deadline. 3 prior complaints filed at this address.</div>
+        </div>
+        <!-- Skeletons -->
+        <div id="skels">
+          <div class="skel"></div>
+          <div class="skel"></div>
+          <div class="skel tall"></div>
+        </div>
+        <!-- Real content -->
+        <div id="realcontent" style="display:none">
+          <div class="stitle">Building data from HPD</div>
+          <div class="icard">
+            <div class="irow"><span class="ik">Open violations</span><span class="iv lime">3 open</span></div>
+            <div class="irow"><span class="ik">Landlord status</span><span class="iv danger">In default — 47 days</span></div>
+            <div class="irow"><span class="ik">Prior 311 complaints</span><span class="iv warn">3 in last 24 months</span></div>
+            <div class="irow"><span class="ik">Building owner</span><span class="iv">Seaview Properties LLC</span></div>
+          </div>
+          <div class="stitle">Auto-filled by TenantLens</div>
+          <div class="ff">
+            <div class="fflbl">Complaint type <span class="atag">AUTO</span></div>
+            <div class="ffv">PAINT / PLASTER — Mold</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Location type <span class="atag">AUTO</span></div>
+            <div class="ffv">Residential Building</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Address <span class="atag">AUTO</span></div>
+            <div class="ffv" id="afield">243 94th Street, Apt 4B, Brooklyn, NY 11209</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Complaint description <span class="atag">AUTO</span></div>
+            <div class="ffta">Tenant reports visible mold growth on bathroom ceiling and wall junction, present approximately 6 weeks. Building has 2 open HPD mold violations (IDs: 14823901, 14756234), both past the 30-day Class B repair deadline. Three prior 311 mold complaints at this address in 24 months.</div>
+          </div>
+          <div class="stitle">Fill in yourself</div>
+          <div class="ff">
+            <div class="fflbl">First name</div>
+            <div class="ffv e" contenteditable="true">Maria</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Last name</div>
+            <div class="ffv e" contenteditable="true">Rodriguez</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Phone</div>
+            <div class="ffv e" contenteditable="true">(718) 555-0184</div>
+          </div>
+          <div class="ff">
+            <div class="fflbl">Email <span style="font-size:10px;color:var(--t3)">optional</span></div>
+            <div class="ffv e" contenteditable="true" style="color:var(--t3)">Add email for updates...</div>
+          </div>
+          <div class="stitle">Review before filing</div>
+          <div class="rev">
+            <div class="rev-in">
+              <div class="revh">Complaint summary</div>
+              <div class="rr"><span class="rk">Violation</span><span class="rv">Mold — Class B Hazardous</span></div>
+              <div class="rr"><span class="rk">Deadline</span><span class="rv">30 days (landlord in default)</span></div>
+              <div class="rr"><span class="rk">HPD violations cited</span><span class="rv">2 open, past deadline</span></div>
+              <div class="rr"><span class="rk">Prior complaints</span><span class="rv">3 in last 24 months</span></div>
+              <div class="rr"><span class="rk">Anti-retaliation</span><span class="rv">Protected · NYC § 26-516</span></div>
+            </div>
+          </div>
+          <div class="wait" id="wb">
+            <div class="wh"><div class="ldot"></div>Ready — confirm to submit</div>
+            <div class="ws">You — not the app — are filing this complaint. Review everything above, then tap Submit. That's what protects you.</div>
+          </div>
+          <div class="succ" id="succ">
+            <div class="confetti" id="confetti"></div>
+            <div class="succ-inner">
+              <div class="succ-icon">✅</div>
+              <div class="succ-title">Complaint filed</div>
+              <div class="succ-desc">NYC 311 received your complaint. HPD will contact your landlord and schedule an inspection within the Class B window.</div>
+              <div class="succ-ref">SR-2026-03-2847193</div>
+              <div class="succ-meta">Submitted Mar 28, 2026 · 2:47 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cta" id="s3cta">
+        <button class="btn btn-p" onclick="window.doSubmit()">Submit to NYC 311 →</button>
+        <button class="btn btn-g" onclick="window.open('https://portal.311.nyc.gov/sr-step/?id=e397c97a-632a-f111-9730-7c1e52d97ecc','_blank')">Open 311 portal directly ↗</button>
+      </div>
+    </div>
+
+  </div><!-- /scr-wrap -->
+</div><!-- /shell -->
+</body>
+</html>

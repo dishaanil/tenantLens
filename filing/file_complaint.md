@@ -1,6 +1,7 @@
 # file_complaint — Filing Agent Skill
 
 ## What this agent does
+Can perform browser-based navigation including address verification and dynamic form mapping. Uses Playwright to simulate human interactions (typing, clicking, and selecting) to bypass basic bot-detection while maintaining user agency.
 Receives the structured Agent 2 payload, narrates the tenant's legal rights as
 spoken audio via Gemini Pro, presents a pre-filled 311 complaint form for
 tenant review, and opens the NYC 311 housing complaint form in a browser with

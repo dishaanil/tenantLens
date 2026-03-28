@@ -1,15 +1,13 @@
 from google import genai
-from google.genai import types
-import os
 
 client = genai.Client(
     vertexai=True,
     project="tenantlens",
-    location="us-central1",
+    location="global",
 )
 
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite-preview",
     contents="Reply with exactly: Vertex AI works",
 )
 

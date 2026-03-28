@@ -92,5 +92,5 @@ gcloud run deploy tenantlens --source . --region us-central1
 
 ## Built For
 
-NYC Build With AI Hackathon — Google GDG x Columbia Business School  
+NYC Build With AI Hackathon — Google GDG x NYU  
 NYC Open Data Week 2026

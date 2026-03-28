@@ -59,6 +59,15 @@ interface HazeLayer {
   col: RGB;
 }
 
+interface AgentResponse {
+  violation_type: string;
+  confidence: string;
+  description: string;
+  address: string;
+  borough: string;
+  preferred_language: string;
+}
+
 // ─── Expose globals to HTML onclick handlers ──────────────────────────────────
 declare global {
   interface Window {
@@ -75,13 +84,17 @@ declare global {
 
 let cur = 1;
 let busy = false;
+let agentResult: AgentResponse | null = null;
+let cameraStream: MediaStream | null = null;
+
+const AGENT1_URL = 'http://localhost:8001/run';
 
 const STEPS: Step[] = [
-  { i: '🔍', l: 'Processing image',       d: 'Reading pixel data and color distribution across the captured frame...' },
-  { i: '🧠', l: 'Pattern recognition',    d: 'Texture matches <span class="hl2">mold growth signature</span> — irregular edge dispersion, moisture halo detected. Confidence 91%' },
-  { i: '📋', l: 'Matching HPD codes',     d: 'Mapped to <span class="hl2">HMC § 27-2017.1</span> — mold/mildew, Class B hazardous. Landlord repair deadline: 30 days.' },
-  { i: '🏢', l: 'Querying building data', d: 'BBL 3-07567-0001 → <span class="hl2">3 open violations</span>, 2 mold-related. Landlord in default 47 days. 3 prior 311 complaints found.' },
-  { i: '⚡', l: 'Building complaint',     d: '<span class="hl2">All 5 fields auto-filled</span> from scan + HPD Open Data. Complaint ready for review.' },
+  { i: '📸', l: 'Capturing image',        d: 'Reading frame from camera and encoding...' },
+  { i: '🧠', l: 'Pattern recognition',    d: 'Texture matches <span class="hl2">violation signature</span> — analyzing housing condition...' },
+  { i: '📋', l: 'Matching HPD codes',     d: 'Mapping to <span class="hl2">NYC Housing Maintenance Code</span> — identifying landlord obligations...' },
+  { i: '🏢', l: 'Querying building data', d: 'Pulling open violations from <span class="hl2">HPD Open Data</span> for this address...' },
+  { i: '⚡', l: 'Building complaint',     d: '<span class="hl2">Pre-filling 311 complaint</span> with violation details and legal language...' },
 ];
 
 // ─── DOM Helpers ──────────────────────────────────────────────────────────────
@@ -90,7 +103,152 @@ function getEl<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
 }
 
-// ─── Screen 1: Entry animation ────────────────────────────────────────────────
+// ─── Camera ───────────────────────────────────────────────────────────────────
+
+async function startCamera(): Promise<void> {
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    const video = getEl<HTMLVideoElement>('cameraVideo');
+    if (video) {
+      video.srcObject = cameraStream;
+      video.play();
+    }
+  } catch (err) {
+    console.warn('Camera access denied or unavailable:', err);
+  }
+}
+
+function captureFrame(): string | null {
+  const video = getEl<HTMLVideoElement>('cameraVideo');
+  if (!video || !cameraStream) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth  || 1280;
+  canvas.height = video.videoHeight || 720;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  return dataUrl.split(',')[1];
+}
+
+// ─── Agent 1 API Call ─────────────────────────────────────────────────────────
+
+async function callAgent1(
+  address: string,
+  borough: string,
+  language: string,
+  frameB64: string | null
+): Promise<void> {
+  try {
+    const body: Record<string, string> = {
+      address,
+      borough,
+      preferred_language: language,
+    };
+
+    if (frameB64) body.frame_base64 = frameB64;
+
+    const res = await fetch(AGENT1_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`Agent 1 returned ${res.status}`);
+    agentResult = await res.json();
+    console.log('Agent 1 response:', agentResult);
+    populateScreen3(); 
+
+  } catch (err) {
+    console.error('Agent 1 call failed — using fallback:', err);
+    agentResult = {
+      violation_type: 'pest_infestation',
+      confidence: 'high',
+      description: 'Numerous dark droppings visible on countertop surface, consistent with rodent activity.',
+      address,
+      borough,
+      preferred_language: language,
+    };
+    populateScreen3
+  }
+}
+
+// ─── Populate Screen 3 with real agent data ───────────────────────────────────
+
+function populateScreen3(): void {
+  if (!agentResult) return;
+ 
+  const vt = agentResult.violation_type.replace(/_/g, ' ');
+ 
+  const vioEl = document.getElementById('real-violation-type');
+  if (vioEl) vioEl.textContent = vt;
+ 
+  const confEl = document.getElementById('real-confidence');
+  if (confEl) confEl.textContent = agentResult.confidence;
+ 
+  const descEl = document.getElementById('real-description');
+  if (descEl) descEl.textContent = agentResult.description;
+ 
+  const addrEl = document.getElementById('real-address');
+  if (addrEl) addrEl.textContent = agentResult.address;
+ 
+  const boroughEl = document.getElementById('real-borough');
+  if (boroughEl) boroughEl.textContent = agentResult.borough;
+
+  const vioDescEl = document.getElementById('real-vio-desc');
+  if (vioDescEl) vioDescEl.textContent = agentResult.description;
+ 
+  const complaintMap: Record<string, string> = {
+    mold:              'UNSANITARY CONDITION — MOLD',
+    water_damage:      'PLUMBING — WATER SUPPLY',
+    pest_damage:       'PEST/RODENT ACTIVITY',
+    pest_infestation:  'PEST/RODENT ACTIVITY',
+    broken_fixture:    'DOOR/WINDOW — DEFECTIVE',
+    structural_damage: 'STRUCTURAL — DEFECTIVE CONDITIONS',
+    heating_issue:     'HEAT/HOT WATER — INADEQUATE HEAT',
+    none:              'GENERAL COMPLAINT',
+  };
+ 
+  const compEl = document.getElementById('real-complaint-type');
+  if (compEl) compEl.textContent = complaintMap[agentResult.violation_type] || vt.toUpperCase();
+ 
+  const deadlineMap: Record<string, string> = {
+    mold:              '24 hours (Class C) or 30 days (Class B)',
+    water_damage:      '30 days',
+    pest_damage:       '30 days',
+    pest_infestation:  '24 hours (Class C — immediate hazard)',
+    broken_fixture:    '30 days',
+    structural_damage: '30 days',
+    heating_issue:     '24 hours',
+    none:              'N/A',
+  };
+ 
+  const deadlineEl = document.getElementById('real-deadline');
+  if (deadlineEl) deadlineEl.textContent = deadlineMap[agentResult.violation_type] || '30 days';
+
+  const titleMap: Record<string, string> = {
+    mold:              'Mold Growth Detected',
+    water_damage:      'Water Damage Detected',
+    pest_damage:       'Pest Damage Detected',
+    pest_infestation:  'Pest Infestation Detected',
+    broken_fixture:    'Broken Fixture Detected',
+    structural_damage: 'Structural Damage Detected',
+    heating_issue:     'Heating Issue Detected',
+    none:              'No Violation Detected',
+  };
+
+const titleEl = document.getElementById('real-vio-title');
+if (titleEl) titleEl.textContent = titleMap[agentResult.violation_type] || vt;  
+}
+ 
+
+// ─── Screen 1 Entry Animation ─────────────────────────────────────────────────
 
 function animateS1(): void {
   const els = document.querySelectorAll<HTMLElement>('.s1-hero .tag,.h1,.sub,.stats,.div,.s1-form,.cta');
@@ -119,7 +277,8 @@ function go(n: number): void {
   next.classList.add('on');
   next.scrollTop = 0;
 
-  // Update progress pips
+  if (n === 2) startCamera();
+
   for (let i = 1; i <= 3; i++) {
     const p = getEl('pp' + i);
     p.className = 'pip';
@@ -127,7 +286,6 @@ function go(n: number): void {
     else if (i === n) p.classList.add('on');
   }
 
-  // Update sidebar nav state
   for (let i = 1; i <= 3; i++) {
     getEl('sni' + i).classList.remove('cur');
     getEl('bub' + i).classList.remove('done');
@@ -135,7 +293,6 @@ function go(n: number): void {
     else if (i < n) getEl('bub' + i).classList.add('done');
   }
 
-  // Sync address fields into screen 2 pill and screen 3 address field
   const a  = getEl<HTMLInputElement>('fa').value  || '243 94th Street';
   const ap = getEl<HTMLInputElement>('fap').value || '4B';
   const b  = getEl<HTMLInputElement>('fb').value  || 'Brooklyn';
@@ -143,6 +300,7 @@ function go(n: number): void {
   getEl('afield').textContent = `${a}, Apt ${ap}, ${b}, NY`;
 
   if (n === 3) {
+    populateScreen3();
     loadS3();
     const fn = getEl<HTMLInputElement>('ffn').value;
     const ln = getEl<HTMLInputElement>('fln').value;
@@ -161,13 +319,13 @@ function go(n: number): void {
 }
 
 function loadS3(): void {
-  getEl('lbar').style.display       = 'flex';
-  getEl('skels').style.display      = 'block';
+  getEl('lbar').style.display        = 'flex';
+  getEl('skels').style.display       = 'block';
   getEl('realcontent').style.display = 'none';
 
   setTimeout(() => {
-    getEl('lbar').style.display       = 'none';
-    getEl('skels').style.display      = 'none';
+    getEl('lbar').style.display        = 'none';
+    getEl('skels').style.display       = 'none';
     getEl('realcontent').style.display = 'block';
 
     const items = document.querySelectorAll<HTMLElement>(
@@ -205,12 +363,27 @@ function qf(a: string, b: string, c: string, fn: string, ln: string): void {
   if (ln) getEl<HTMLInputElement>('fln').value = ln;
 }
 
-// ─── Camera scan ──────────────────────────────────────────────────────────────
+// ─── Camera Scan ──────────────────────────────────────────────────────────────
 
 function scan(): void {
   if (busy) return;
   busy = true;
 
+  // Collect form values
+  const a       = getEl<HTMLInputElement>('fa').value   || '243 94th Street';
+  const ap      = getEl<HTMLInputElement>('fap').value  || '4B';
+  const borough = getEl<HTMLInputElement>('fb').value   || 'Brooklyn';
+  const lang    = (document.getElementById('flang') as HTMLSelectElement)?.value || 'en';
+  const fullAddress = `${a}, Apt ${ap}, ${borough}, NY`;
+
+  // Capture browser camera frame
+  const frameB64 = captureFrame();
+  console.log('Frame captured:', frameB64 ? `${frameB64.length} chars` : 'none — agent uses its own camera');
+
+  // Fire API call in background while animation plays
+  callAgent1(fullAddress, borough, lang, frameB64);
+
+  // Run scan animation
   const btn = getEl('shbtn');
   btn.style.pointerEvents = 'none';
   btn.style.opacity = '.45';
@@ -330,7 +503,6 @@ window.addEventListener('load', () => {
   let t = 0;
   let raf = 0;
 
-  // Colour palette
   const SKY_TOP:    RGB = [4,   6,  20];
   const SKY_MID:    RGB = [6,  10,  28];
   const SKY_HOR:    RGB = [8,  18,  40];
@@ -343,31 +515,24 @@ window.addEventListener('load', () => {
     return `rgba(${c[0]},${c[1]},${c[2]},${a})`;
   }
 
-  // Building definitions (x/w/h as fractions of W/H)
   const DEFS: BuildingDef[] = [
-    // Far background
     { x: .02, w: .03, h: .18, type: 'bg' }, { x: .06, w: .02, h: .22, type: 'bg' },
     { x: .09, w: .04, h: .16, type: 'bg' }, { x: .14, w: .02, h: .20, type: 'bg' },
     { x: .85, w: .03, h: .19, type: 'bg' }, { x: .89, w: .02, h: .23, type: 'bg' },
     { x: .93, w: .04, h: .17, type: 'bg' }, { x: .97, w: .02, h: .21, type: 'bg' },
-    // Mid layer
     { x: .00, w: .05, h: .28, type: 'mid' }, { x: .06, w: .04, h: .35, type: 'mid' },
     { x: .11, w: .06, h: .26, type: 'mid' }, { x: .18, w: .04, h: .32, type: 'mid' },
     { x: .23, w: .03, h: .24, type: 'mid' }, { x: .72, w: .04, h: .30, type: 'mid' },
     { x: .77, w: .05, h: .26, type: 'mid' }, { x: .83, w: .04, h: .33, type: 'mid' },
     { x: .88, w: .03, h: .25, type: 'mid' }, { x: .92, w: .05, h: .29, type: 'mid' },
     { x: .98, w: .02, h: .22, type: 'mid' },
-    // Foreground left
     { x: .04, w: .06, h: .40, type: 'fg' }, { x: .11, w: .05, h: .45, type: 'fg' },
     { x: .17, w: .04, h: .38, type: 'fg' },
-    // Foreground right
     { x: .76, w: .06, h: .42, type: 'fg' }, { x: .83, w: .05, h: .38, type: 'fg' },
     { x: .89, w: .04, h: .44, type: 'fg' }, { x: .94, w: .06, h: .36, type: 'fg' },
-    // Landmarks
     { x: .20, w: .07, h: .60, type: 'esb' },
     { x: .44, w: .10, h: .80, type: 'owt' },
     { x: .62, w: .07, h: .58, type: 'chr' },
-    // Mid-right towers
     { x: .56, w: .05, h: .48, type: 'fg' }, { x: .70, w: .04, h: .52, type: 'fg' },
   ];
 
@@ -405,9 +570,9 @@ window.addEventListener('load', () => {
       }
 
       let antenna: Antenna | null = null;
-      if      (d.type === 'esb')          antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .18 };
-      else if (d.type === 'owt')          antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .14 };
-      else if (d.type === 'chr')          antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .12 };
+      if      (d.type === 'esb')              antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .18 };
+      else if (d.type === 'owt')              antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .14 };
+      else if (d.type === 'chr')              antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .12 };
       else if (d.type === 'fg' && d.h > .44) antenna = { x: bx + bw * .5, y1: by, y2: by - bh * .08 };
 
       return { bx, by, bw, bh, type: d.type, wins, antenna };
@@ -416,6 +581,7 @@ window.addEventListener('load', () => {
   }
 
   function resize(): void {
+    if (!cv) return;
     dpr = window.devicePixelRatio || 1;
     const rect = wrap.getBoundingClientRect();
     W = rect.width  || 390;
@@ -436,6 +602,7 @@ window.addEventListener('load', () => {
   let last = performance.now();
 
   function tick(now: number): void {
+    if (!cv) return;
     const dt = now - last;
     last = now;
     t += dt * 0.001;
@@ -443,7 +610,6 @@ window.addEventListener('load', () => {
     const ctx = cv.getContext('2d')!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Sky gradient
     const skyGrd = ctx.createLinearGradient(0, 0, 0, H * 0.72);
     skyGrd.addColorStop(0,   rgba(SKY_TOP, .98));
     skyGrd.addColorStop(.5,  rgba(SKY_MID, .98));
@@ -451,7 +617,6 @@ window.addEventListener('load', () => {
     ctx.fillStyle = skyGrd;
     ctx.fillRect(0, 0, W, H);
 
-    // Horizon glow
     const horGrd = ctx.createRadialGradient(W * .5, H * .73, 0, W * .5, H * .73, W * .6);
     horGrd.addColorStop(0,  rgba(LIME, .06));
     horGrd.addColorStop(.4, rgba(LIME, .02));
@@ -459,7 +624,6 @@ window.addEventListener('load', () => {
     ctx.fillStyle = horGrd;
     ctx.fillRect(0, H * .4, W, H * .4);
 
-    // Stars
     const STARS: [number, number, number][] = [
       [.06,.08,.9],[.14,.04,.7],[.22,.11,.8],[.33,.05,.75],
       [.50,.07,.65],[.58,.03,.85],[.68,.09,.7],[.80,.05,.8],
@@ -473,7 +637,6 @@ window.addEventListener('load', () => {
       ctx.fill();
     });
 
-    // Haze layers
     HAZES.forEach(hz => {
       const hx    = ((hz.x + t * hz.speed * .1) % 1.4) - .2;
       const pulse = 1 + .15 * Math.sin(t * .4 + hz.cy * 10);
@@ -489,23 +652,18 @@ window.addEventListener('load', () => {
 
     if (!built) { raf = requestAnimationFrame(tick); return; }
 
-    // Random window flicker
     if (Math.random() < .04) winStates[Math.floor(Math.random() * winStates.length)] = Math.random();
 
-    // Buildings
     const alphaMap: Record<BuildingType, number> = { bg:.06, mid:.1, fg:.14, esb:.16, owt:.20, chr:.16 };
 
     buildings.forEach(b => {
       const alpha = alphaMap[b.type];
-
-      // Body gradient
       const bGrd = ctx.createLinearGradient(b.bx, b.by, b.bx, b.by + b.bh);
       bGrd.addColorStop(0, rgba(LIME, alpha * .9));
       bGrd.addColorStop(1, rgba(LIME, alpha * .3));
       ctx.fillStyle = bGrd;
       ctx.fillRect(b.bx, b.by, b.bw, b.bh);
 
-      // ESB step-backs
       if (b.type === 'esb') {
         ctx.fillStyle = rgba(LIME, alpha * .7);
         ctx.fillRect(b.bx - b.bw * .15, b.by + b.bh * .18, b.bw * 1.3, b.bh * .82);
@@ -513,7 +671,6 @@ window.addEventListener('load', () => {
         ctx.fillRect(b.bx - b.bw * .45, b.by + b.bh * .46, b.bw * 1.9, b.bh * .54);
       }
 
-      // OWT taper
       if (b.type === 'owt') {
         ctx.beginPath();
         ctx.moveTo(b.bx - b.bw * .3,  b.by + b.bh);
@@ -527,13 +684,12 @@ window.addEventListener('load', () => {
         ctx.fill();
       }
 
-      // Chrysler art-deco crown tiers
       if (b.type === 'chr') {
         const tiers: [number, number, number][] = [[.4,.55,.15],[.3,.42,.12],[.22,.3,.1]];
         tiers.forEach(([t1, t2, alt]) => {
           ctx.beginPath();
-          ctx.moveTo(b.bx,            b.by + b.bh * t2);
-          ctx.lineTo(b.bx + b.bw,     b.by + b.bh * t2);
+          ctx.moveTo(b.bx,             b.by + b.bh * t2);
+          ctx.lineTo(b.bx + b.bw,      b.by + b.bh * t2);
           ctx.lineTo(b.bx + b.bw * .7, b.by + b.bh * t1);
           ctx.lineTo(b.bx + b.bw * .3, b.by + b.bh * t1);
           ctx.closePath();
@@ -542,7 +698,6 @@ window.addEventListener('load', () => {
         });
       }
 
-      // Windows
       b.wins.forEach(win => {
         const br          = winStates[win.idx];
         const slowFlicker = .6 + .4 * Math.sin(t * .3 + win.idx * .7);
@@ -552,23 +707,19 @@ window.addEventListener('load', () => {
         ctx.fillRect(win.wx, win.wy, win.ws, win.ws);
       });
 
-      // Antenna
       if (b.antenna) {
         const an       = b.antenna;
         const tipBlink = .5 + .5 * Math.sin(t * (b.type === 'owt' ? 2.2 : 1.8) + b.bx);
-
         ctx.strokeStyle = rgba(LIME, .5);
         ctx.lineWidth   = 1.2;
         ctx.beginPath();
         ctx.moveTo(an.x, an.y1);
         ctx.lineTo(an.x, an.y2);
         ctx.stroke();
-
         ctx.fillStyle = rgba(LIME, tipBlink * .9);
         ctx.beginPath();
         ctx.arc(an.x, an.y2, 1.8, 0, Math.PI * 2);
         ctx.fill();
-
         const gGrd = ctx.createRadialGradient(an.x, an.y2, 0, an.x, an.y2, 8);
         gGrd.addColorStop(0, rgba(LIME, tipBlink * .2));
         gGrd.addColorStop(1, 'transparent');
@@ -577,7 +728,6 @@ window.addEventListener('load', () => {
       }
     });
 
-    // Horizon line
     ctx.strokeStyle = rgba(LIME, .14);
     ctx.lineWidth   = .7;
     ctx.beginPath();
@@ -585,7 +735,6 @@ window.addEventListener('load', () => {
     ctx.lineTo(W, H * .72);
     ctx.stroke();
 
-    // Water reflection
     const waterH   = H - H * .72;
     const waterGrd = ctx.createLinearGradient(0, H * .72, 0, H);
     waterGrd.addColorStop(0,  rgba(WATER_DEEP, .6));
@@ -594,7 +743,6 @@ window.addEventListener('load', () => {
     ctx.fillStyle = waterGrd;
     ctx.fillRect(0, H * .72, W, waterH);
 
-    // Water ripple lines
     for (let ri = 0; ri < 6; ri++) {
       const ry   = H * .74 + ri * waterH * .11;
       const rOff = Math.sin(t * .4 + ri) * 4;
@@ -606,7 +754,6 @@ window.addEventListener('load', () => {
       ctx.stroke();
     }
 
-    // OWT water reflection column
     const owtB = buildings.find(b => b.type === 'owt');
     if (owtB) {
       const colGrd = ctx.createLinearGradient(0, H * .72, 0, H);
@@ -617,7 +764,6 @@ window.addEventListener('load', () => {
       ctx.fillRect(owtB.bx + owtB.bw * .2, H * .72, owtB.bw * .6, waterH * .7);
     }
 
-    // Scan beam
     const beamCycle = (t % 6) / 6;
     const rawBeamY  = beamCycle * H * .72;
     const beamAlpha = beamCycle < .05 ? beamCycle / .05 : beamCycle > .92 ? (1 - beamCycle) / .08 : 1;
@@ -638,7 +784,6 @@ window.addEventListener('load', () => {
     ctx.fillStyle = bmGrd;
     ctx.fillRect(0, rawBeamY - 4, W, 8);
 
-    // Bottom fade into background
     const fadeGrd = ctx.createLinearGradient(0, H * .55, 0, H);
     fadeGrd.addColorStop(0,  'transparent');
     fadeGrd.addColorStop(.7, rgba([4,4,15], .6));

@@ -1,17 +1,19 @@
 """
 violation_parser.py
 Perception Agent — Step 3
-Parses Gemini Flash raw text into a typed ViolationType.
-This is the frozen output contract — field names must not change.
+Parses Gemini raw text into a typed ViolationType.
+Carries borough and preferred_language through to the A2A payload.
 """
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 
 VALID_VIOLATIONS = {
     "mold", "water_damage", "pest_damage", "pest_infestation",
     "broken_fixture", "structural_damage", "heating_issue", "none",
 }
+
+SUPPORTED_LANGUAGES = {"en", "es", "zh", "bn", "ru", "ar", "fr", "pt", "ko", "hi"}
 
 
 @dataclass
@@ -19,6 +21,7 @@ class ViolationType:
     violation_type: str
     confidence: Literal["high", "medium", "low"]
     description: str
+    preferred_language: str = "en"
 
     def to_a2a_payload(self, address: str, borough: str, preferred_language: str = "en") -> dict:
         return {
@@ -31,11 +34,14 @@ class ViolationType:
         }
 
 
-def parse(raw_text: str) -> ViolationType:
-    """Parse the structured Gemini response into ViolationType."""
+def parse(raw_text: str, preferred_language: str = "en") -> ViolationType:
     violation = "none"
     confidence = "low"
     description = "Could not parse response."
+
+    lang = preferred_language.strip().lower() if preferred_language else "en"
+    if lang not in SUPPORTED_LANGUAGES:
+        lang = "en"
 
     for line in raw_text.strip().splitlines():
         line = line.strip()
@@ -52,6 +58,7 @@ def parse(raw_text: str) -> ViolationType:
         violation_type=violation,
         confidence=confidence,
         description=description,
+        preferred_language=lang,
     )
 
 

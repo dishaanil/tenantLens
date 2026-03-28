@@ -20,17 +20,15 @@ class ViolationType:
     confidence: Literal["high", "medium", "low"]
     description: str
 
-    def to_a2a_payload(self, address: str) -> dict:
-        """
-        Exact payload sent to Agent 2 via A2A.
-        Field names are frozen — do not rename.
-        """
-        return {
-            "violation_type": self.violation_type,
-            "confidence": self.confidence,
-            "description": self.description,
-            "address": address,
-        }
+    def to_a2a_payload(self, address: str, borough: str, preferred_language: str = "en") -> dict:
+    return {
+        "violation_type": self.violation_type,
+        "confidence": self.confidence,
+        "description": self.description,
+        "address": address,
+        "borough": borough,
+        "preferred_language": preferred_language
+    }
 
 
 def parse(raw_text: str) -> ViolationType:

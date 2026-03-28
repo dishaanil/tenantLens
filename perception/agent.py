@@ -24,6 +24,8 @@ app = FastAPI(title="TenantLens Perception Agent", version="1.0.0")
 
 class RunRequest(BaseModel):
     address: str
+    borough: str
+    preferred_language: str = "en"
     frame_base64: Optional[str] = None # if None, agent captures from device camera
 
 

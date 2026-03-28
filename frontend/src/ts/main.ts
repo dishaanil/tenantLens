@@ -87,7 +87,7 @@ let busy = false;
 let agentResult: AgentResponse | null = null;
 let cameraStream: MediaStream | null = null;
 
-const AGENT1_URL = 'http://localhost:8001/run';
+const AGENT1_URL = 'https://tenantlens-683051297461.us-central1.run.app/run';
 
 const STEPS: Step[] = [
   { i: '📸', l: 'Capturing image',        d: 'Reading frame from camera and encoding...' },

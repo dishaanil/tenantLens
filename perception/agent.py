@@ -141,8 +141,9 @@ app.add_middleware(
 
 class RunRequest(BaseModel):
     address: str
-    preferred_language: Optional[str] = "en"
-    frame_base64: Optional[str] = None   # if None, agent captures from device camera
+    borough: str
+    preferred_language: str = "en"
+    frame_base64: Optional[str] = None # if None, agent captures from device camera
 
 
 class RunResponse(BaseModel):
@@ -191,21 +192,23 @@ def agent_card():
 
 @app.post("/run", response_model=RunResponse)
 def run(req: RunRequest):
+    """
+    Main A2A pipeline:
+    1. Get frame (from request payload or device camera)
+    2. Send to Gemini Flash
+    3. Parse response
+    4. Return ViolationType payload to orchestrator
+    """
     try:
-        frame_b64 = req.frame_base64 if req.frame_base64 is not None else get_frame_base64()
+        frame_b64 = req.frame_base64 if req.frame_base64 else get_frame_base64()
         raw_text = analyze_frame(frame_b64)
         violation = parse(raw_text)
-        payload = violation.to_a2a_payload(
-            req.address,
-            req.borough,
-            req.preferred_language,
-        )
-        return RunResponse(
-            violation_type=payload["violation_type"],
-            confidence=payload["confidence"],
-            description=payload["description"],
-            address=payload["address"],
-        )
+        return RunResponse(**violation.to_a2a_payload(
+    req.address, 
+    req.borough, 
+    req.preferred_language
+))
+
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:

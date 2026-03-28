@@ -163,6 +163,7 @@ async function callAgent1(
     if (!res.ok) throw new Error(`Agent 1 returned ${res.status}`);
     agentResult = await res.json();
     console.log('Agent 1 response:', agentResult);
+    populateScreen3(); 
 
   } catch (err) {
     console.error('Agent 1 call failed — using fallback:', err);
@@ -174,6 +175,7 @@ async function callAgent1(
       borough,
       preferred_language: language,
     };
+    populateScreen3
   }
 }
 
@@ -229,6 +231,20 @@ function populateScreen3(): void {
  
   const deadlineEl = document.getElementById('real-deadline');
   if (deadlineEl) deadlineEl.textContent = deadlineMap[agentResult.violation_type] || '30 days';
+
+  const titleMap: Record<string, string> = {
+    mold:              'Mold Growth Detected',
+    water_damage:      'Water Damage Detected',
+    pest_damage:       'Pest Damage Detected',
+    pest_infestation:  'Pest Infestation Detected',
+    broken_fixture:    'Broken Fixture Detected',
+    structural_damage: 'Structural Damage Detected',
+    heating_issue:     'Heating Issue Detected',
+    none:              'No Violation Detected',
+  };
+
+const titleEl = document.getElementById('real-vio-title');
+if (titleEl) titleEl.textContent = titleMap[agentResult.violation_type] || vt;  
 }
  
 
